@@ -6,6 +6,8 @@ from zlib import crc32
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import StratifiedShuffleSplit as SSS
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder
 
 
 PATH_DATASETS = "datasets"
@@ -76,3 +78,39 @@ class Data(object):
         test = df.loc[itest]
 
         return train, test
+
+    @staticmethod
+    def impute(df, strategy='median'):
+        numeric = df.select_dtypes(include=['number'])
+
+        imputer = SimpleImputer(strategy=strategy)
+
+        # consider fit_transform instead
+        imputer.fit(numeric)
+        imputed = imputer.transform(numeric)
+        imputed = pd.DataFrame(imputed, columns=numeric.columns)
+
+        columns = df.select_dtypes(exclude=['number']).columns
+        imputed[columns] = df[columns]
+
+        params = imputer.statistics_
+
+        return (imputed, params)
+
+    @staticmethod
+    def onehot(df, key):
+        # consider scikit.CategoricalEncoder() instrad
+        encoder = OneHotEncoder(categories='auto')
+
+        encoded, categories = df[key].fillna('NULL').factorize()
+
+        sparse = encoder.fit_transform(encoded.reshape(-1, 1))
+        encoded = sparse.toarray()
+
+        encoded = pd.DataFrame(encoded)
+        encoded.columns = categories
+
+        df = df.drop(key, axis=1)
+        encoded[df.columns] = df
+
+        return (encoded, categories)
