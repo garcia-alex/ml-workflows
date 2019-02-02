@@ -102,7 +102,3 @@ if __name__ == '__main__':
     prep = pd.DataFrame(array, columns=columns)
 
     train = prep.drop(KEY_MEDIAN_VALUE, axis=1)
-
-    Evaluation(LinearRegression).run(train, labels)
-    Evaluation(DecisionTreeRegressor).run(train, labels)
-    Evaluation(RandomForestRegressor, n_estimators=10, random_state=42).run(train, labels)
