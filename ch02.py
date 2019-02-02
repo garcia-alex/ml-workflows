@@ -2,12 +2,16 @@ import os
 
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
 
-from util import Data, URL_ROOT, PATH_DATASETS
+from utilities import Data, URL_ROOT, PATH_DATASETS
 from pipeline import (
     NumericPipeline, CategoryPipeline, UnionPipeline,
     PIPELINE_CATEGORICAL, PIPELINE_NUMERIC, DTYPE_NUMBER
 )
+from evaluation import Evaluation
 
 URL_HOUSING = f"{URL_ROOT}/datasets/housing/housing.tgz"
 PATH_HOUSING = os.path.join(PATH_DATASETS, "housing")
@@ -80,7 +84,7 @@ if __name__ == '__main__':
     prep = train.copy()
 
     pipelines = [
-        (PIPELINE_NUMERIC, NumericPipeline(prep, agents(prep), scale=True)),
+        (PIPELINE_NUMERIC, NumericPipeline(prep, agents(prep))),
         (PIPELINE_CATEGORICAL, CategoryPipeline(prep))
     ]
 
@@ -98,3 +102,7 @@ if __name__ == '__main__':
     prep = pd.DataFrame(array, columns=columns)
 
     train = prep.drop(KEY_MEDIAN_VALUE, axis=1)
+
+    Evaluation(LinearRegression).run(train, labels)
+    Evaluation(DecisionTreeRegressor).run(train, labels)
+    Evaluation(RandomForestRegressor, n_estimators=10, random_state=42).run(train, labels)
