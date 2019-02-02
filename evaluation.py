@@ -7,22 +7,22 @@ from logger import logger, LOGGING_INFO
 
 
 class Evaluation(object):
-    def __init__(self, regressor, *args, **kwargs):    
+    def __init__(self, regressor, *args, **kwargs):
         self.regressor = regressor
         self.name = regressor.__name__
-    
+
         self.model = regressor(*args, **kwargs)
 
     def mse(self, labels, predictions):
         mse = mean_squared_error(labels, predictions)
         rmse = np.sqrt(mse)
-        
+
         return rmse
 
     def score(self, train, labels):
         scores = cross_val_score(
-            self.model, train, labels, 
-            scoring="neg_mean_squared_error", 
+            self.model, train, labels,
+            scoring="neg_mean_squared_error",
             cv=10
         )
 
