@@ -63,13 +63,13 @@ def engineer_features(df):
 if __name__ == '__main__':
     df = load_housing_data()
 
-    prep = df.copy()
+    train, test = generate_sets(df)
+    labels = train[KEY_MEDIAN_VALUE].copy()
+
+    prep = train.copy()
     engineer_features(prep)
 
     prep, medians = Data.impute(prep)
     prep, categories = Data.onehot(prep, KEY_OCEAN_PROXIMITY)
 
-    train, test = generate_sets(prep)
-
-    labels = train[KEY_MEDIAN_VALUE].copy()
-    train = train.drop(KEY_MEDIAN_VALUE, axis=1)
+    train = prep.drop(KEY_MEDIAN_VALUE, axis=1)
