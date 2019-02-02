@@ -1,0 +1,9 @@
+flake8
+jupyter
+matplotlib
+numpy
+pandas
+pandas-datareader
+pylint
+scikit-learn
+scipy
