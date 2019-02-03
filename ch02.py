@@ -3,14 +3,14 @@ import os
 import numpy as np
 import pandas as pd
 
-from utilities import Data, URL_ROOT, PATH_DATASETS
+from utilities import Data, URL_HANDSON_ROOT, PATH_DATASETS
 from pipeline import (
     NumericPipeline, CategoryPipeline, UnionPipeline,
     PIPELINE_CATEGORICAL, PIPELINE_NUMERIC, DTYPE_NUMBER
 )
 from evaluation import Evaluation
 
-URL_HOUSING = f"{URL_ROOT}/datasets/housing/housing.tgz"
+URL_HOUSING = f"{URL_HANDSON_ROOT}/datasets/housing/housing.tgz"
 PATH_HOUSING = os.path.join(PATH_DATASETS, "housing")
 FILE_HOUSING = 'housing.csv'
 
