@@ -2,7 +2,8 @@ import numpy as np
 
 from sklearn.metrics import (
     mean_squared_error, confusion_matrix,
-    precision_score, recall_score, f1_score
+    precision_score, recall_score, f1_score,
+    precision_recall_curve
 )
 from sklearn.model_selection import cross_val_score, cross_val_predict
 
@@ -98,3 +99,10 @@ class EvaluateClassifier(object):
         logger.log(LOGGING_INFO, ('Confusion Matrix:', matrix))
         logger.log(LOGGING_INFO, ('P/R', list(map(_fmt, [precision, recall, f1]))))
         logger.log(LOGGING_INFO, '--------\n\n')
+
+    def pc_curve(self, train, labels, *args, **kwargs):
+        scores = cross_val_predict(self.model, train, labels, *args, **kwargs)
+
+        precisions, recalls, thresholds = precision_recall_curve(labels, scores)
+
+        return (precisions, recalls, thresholds)
