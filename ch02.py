@@ -8,7 +8,6 @@ from pipeline import (
     NumericPipeline, CategoryPipeline, UnionPipeline,
     PIPELINE_CATEGORICAL, PIPELINE_NUMERIC, DTYPE_NUMBER
 )
-from evaluation import Evaluation
 
 URL_HOUSING = f"{URL_HANDSON_ROOT}/datasets/housing/housing.tgz"
 PATH_HOUSING = os.path.join(PATH_DATASETS, "housing")
