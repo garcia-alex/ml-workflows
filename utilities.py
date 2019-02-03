@@ -1,15 +1,17 @@
 import os
-from six.moves import urllib
+import pickle
 import tarfile
+from six.moves import urllib
 from zlib import crc32
 
 import numpy as np
 import pandas as pd
+from sklearn.datasets import fetch_openml
 from sklearn.model_selection import StratifiedShuffleSplit as SSS
 
 
 PATH_DATASETS = "datasets"
-URL_ROOT = "https://raw.githubusercontent.com/ageron/handson-ml/master/"
+URL_HANDSON_ROOT = "https://raw.githubusercontent.com/ageron/handson-ml/master/"
 
 RANDOM_STATE = 42
 
@@ -26,6 +28,26 @@ class Data(object):
         urllib.request.urlretrieve(url, fname)
 
         return fname
+
+    @staticmethod
+    def fetch_openml(path, dataset, *args, **kwargs):
+        if not os.path.isdir(path):
+            os.makedirs(path)
+
+        path = f'{path}/{dataset}'
+
+        if os.path.exists(path):
+            f = open(path, 'rb')
+            data = pickle.load(f)
+            f.close()
+
+        else:
+            data = fetch_openml(dataset, *args, **kwargs)
+            f = open(path, 'wb')
+            pickle.dump(data, f)
+            f.close()
+
+        return data
 
     @staticmethod
     def extract(tgz, path):
