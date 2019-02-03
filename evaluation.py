@@ -2,7 +2,7 @@ import numpy as np
 
 from sklearn.metrics import (
     mean_squared_error, confusion_matrix,
-    precision_score, recall_score
+    precision_score, recall_score, f1_score
 )
 from sklearn.model_selection import cross_val_score, cross_val_predict
 
@@ -62,14 +62,7 @@ class EvaluateClassifier(object):
 
         self.model = classifier(*args, **kwargs)
 
-    def run(self, train, labels, *args, **kwargs):
-        def _fmt(d):
-            return f'{d:.2f}'
-
-        self.model.fit(train, labels)
-
-        predictions = cross_val_predict(self.model, train, labels, *args, **kwargs)
-
+    def score(self, labels, predictions, manual=True):
         matrix = confusion_matrix(labels, predictions)
 
         index = [(0, 0), (1, 1), (1, 0), (0, 1)]
@@ -78,13 +71,32 @@ class EvaluateClassifier(object):
         p_predicted = tp + fp
         p_actual = tp + fn
 
-        precision = tp / p_predicted
-        recall = tp / p_actual
-        pscore = precision_score(labels, predictions)
-        rscore = recall_score(labels, predictions)
+        if manual:
+            precision = tp / p_predicted
+            recall = tp / p_actual
+            f1 = 2 / (1 / precision + 1 / recall)
+
+        else:
+            precision = precision_score(labels, predictions)
+            recall = recall_score(labels, predictions)
+            f1 = f1_score(labels, predictions)
+
+        return (matrix, precision, recall, f1)
+
+    def run(self, train, labels, *args, **kwargs):
+        def _fmt(d):
+            return f'{d:.2f}'
+
+        self.model.fit(train, labels)
+
+        predictions = cross_val_predict(self.model, train, labels, *args, **kwargs)
+
+        matrix, precision, recall, f1 = self.score(labels, predictions)
+        matrix, precision_, recall_, f1_ = self.score(labels, predictions, manual=False)
 
         logger.log(LOGGING_INFO, self.name)
         logger.log(LOGGING_INFO, '==========')
         logger.log(LOGGING_INFO, ('Confusion Matrix:', matrix))
-        logger.log(LOGGING_INFO, ('P/R', list(map(_fmt, [precision, recall, pscore, rscore]))))
+        logger.log(LOGGING_INFO, ('P/R', list(map(_fmt, [precision, recall, f1]))))
+        logger.log(LOGGING_INFO, ('P/R_', list(map(_fmt, [precision_, recall_, f1_]))))
         logger.log(LOGGING_INFO, '--------\n\n')
