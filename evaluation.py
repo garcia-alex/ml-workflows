@@ -92,11 +92,9 @@ class EvaluateClassifier(object):
         predictions = cross_val_predict(self.model, train, labels, *args, **kwargs)
 
         matrix, precision, recall, f1 = self.score(labels, predictions)
-        matrix, precision_, recall_, f1_ = self.score(labels, predictions, manual=False)
 
         logger.log(LOGGING_INFO, self.name)
         logger.log(LOGGING_INFO, '==========')
         logger.log(LOGGING_INFO, ('Confusion Matrix:', matrix))
         logger.log(LOGGING_INFO, ('P/R', list(map(_fmt, [precision, recall, f1]))))
-        logger.log(LOGGING_INFO, ('P/R_', list(map(_fmt, [precision_, recall_, f1_]))))
         logger.log(LOGGING_INFO, '--------\n\n')
