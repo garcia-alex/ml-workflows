@@ -2,6 +2,7 @@ import os
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from sklearn.linear_model import SGDClassifier
 
 from utilities import Data, PATH_DATASETS
 
@@ -72,3 +73,10 @@ if __name__ == '__main__':
     test = (mnist[MNIST_KEY_DATA][n:], mnist[MNIST_KEY_TARGET][n:])
 
     shuffled = shuffle_mnist_train(*train)
+    X_, y_ = shuffled
+
+    y_train = (y_ == 5)
+    y_test = (test[1] == 5)
+
+    sgd_clf = SGDClassifier(max_iter=5, tol=-np.infty, random_state=42)
+    sgd_clf.fit(X_, y_train)

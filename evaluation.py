@@ -1,19 +1,22 @@
 import numpy as np
 
-from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import cross_val_score
+from sklearn.metrics import (
+    mean_squared_error, confusion_matrix,
+    precision_score, recall_score
+)
+from sklearn.model_selection import cross_val_score, cross_val_predict
 
 from logger import logger, LOGGING_INFO
 
 
-class Evaluation(object):
+class EvaluateRegression(object):
     def __init__(self, regressor, *args, **kwargs):
         self.regressor = regressor
         self.name = regressor.__name__
 
         self.model = regressor(*args, **kwargs)
 
-    def mse(self, labels, predictions):
+    def metric(self, labels, predictions):
         mse = mean_squared_error(labels, predictions)
         rmse = np.sqrt(mse)
 
@@ -38,15 +41,50 @@ class Evaluation(object):
 
         predictions = self.model.predict(train)
 
-        mse = self.mse(labels, predictions)
+        metric = self.metric(labels, predictions)
         scores = self.score(train, labels)
 
         logger.log(LOGGING_INFO, self.name)
         logger.log(LOGGING_INFO, '----------')
-        logger.log(LOGGING_INFO, ('mse:', _fmt(mse)))
+        logger.log(LOGGING_INFO, ('metric:', _fmt(metric)))
         logger.log(LOGGING_INFO, '==========')
         logger.log(LOGGING_INFO, ('Scores:', ', '.join(map(_fmt, scores))))
         logger.log(LOGGING_INFO, ('Mean:', _fmt(scores.mean())))
         logger.log(LOGGING_INFO, ('StdDev', _fmt(scores.std())))
 
+        logger.log(LOGGING_INFO, '--------\n\n')
+
+
+class EvaluateClassifier(object):
+    def __init__(self, classifier, *args, **kwargs):
+        self.classifier = classifier
+        self.name = classifier.__name__
+
+        self.model = classifier(*args, **kwargs)
+
+    def run(self, train, labels, *args, **kwargs):
+        def _fmt(d):
+            return f'{d:.2f}'
+
+        self.model.fit(train, labels)
+
+        predictions = cross_val_predict(self.model, train, labels, *args, **kwargs)
+
+        matrix = confusion_matrix(labels, predictions)
+
+        index = [(0, 0), (1, 1), (1, 0), (0, 1)]
+        tn, tp, fn, fp = [matrix[r][c] for r, c in index]
+
+        p_predicted = tp + fp
+        p_actual = tp + fn
+
+        precision = tp / p_predicted
+        recall = tp / p_actual
+        pscore = precision_score(labels, predictions)
+        rscore = recall_score(labels, predictions)
+
+        logger.log(LOGGING_INFO, self.name)
+        logger.log(LOGGING_INFO, '==========')
+        logger.log(LOGGING_INFO, ('Confusion Matrix:', matrix))
+        logger.log(LOGGING_INFO, ('P/R', list(map(_fmt, [precision, recall, pscore, rscore]))))
         logger.log(LOGGING_INFO, '--------\n\n')
