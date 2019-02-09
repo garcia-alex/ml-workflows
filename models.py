@@ -6,6 +6,8 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import cross_val_score, cross_val_predict
 
+from const import SCORING_ACCURACY, SCORING_NEG_MEAN_SQ_ERR
+
 
 class GenericModel(object):
     def __init__(self, algorithm, *args, **kwargs):
@@ -48,7 +50,7 @@ class RegressionModel(GenericModel):
 
         scores = cross_val_score(
             self.model, features, labels,
-            scoring="neg_mean_squared_error",
+            scoring=SCORING_NEG_MEAN_SQ_ERR,
             cv=10
         )
 
@@ -73,9 +75,9 @@ class RegressionModel(GenericModel):
         return representation
 
 
-class BinaryClassifierModel(GenericModel):
+class ClassifierModel(GenericModel):
     def __init__(self, model, *args, **kwargs):
-        super(BinaryClassifierModel, self).__init__(model, *args, **kwargs)
+        super(ClassifierModel, self).__init__(model, *args, **kwargs)
 
     def evaluate(self, features, labels, cv, method):
         self.train(features, labels)
@@ -137,8 +139,19 @@ class BinaryClassifierModel(GenericModel):
 
         return (fpr, tpr, thresholds)
 
+    def cv_score(self):
+        score = cross_val_score(
+            self.model,
+            self.features,
+            self.labels,
+            cv=self.cv,
+            scoring=SCORING_ACCURACY
+        )
+
+        return score
+
     def __repr__(self):
-        representation = super(BinaryClassifierModel, self).__repr__()
+        representation = super(ClassifierModel, self).__repr__()
 
         if not self.evaluated:
             return f'{representation}: not applied'
