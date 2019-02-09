@@ -9,11 +9,7 @@ import pandas as pd
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import StratifiedShuffleSplit as SSS
 
-
-PATH_DATASETS = "datasets"
-URL_HANDSON_ROOT = "https://raw.githubusercontent.com/ageron/handson-ml/master/"
-
-RANDOM_STATE = 42
+from const import RANDOM_STATE
 
 
 class Data(object):

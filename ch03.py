@@ -4,7 +4,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.linear_model import SGDClassifier
 
-from utilities import Data, PATH_DATASETS
+from const import PATH_DATASETS
+from utilities import Data
 
 MNIST_PATH = os.path.join(PATH_DATASETS, "mnist")
 MNIST_DATASET = 'mnist_784'

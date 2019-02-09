@@ -3,7 +3,8 @@ import os
 import numpy as np
 import pandas as pd
 
-from utilities import Data, URL_HANDSON_ROOT, PATH_DATASETS
+from const import URL_HANDSON_ROOT, PATH_DATASETS
+from utilities import Data
 from pipeline import (
     NumericPipeline, CategoryPipeline, UnionPipeline,
     PIPELINE_CATEGORICAL, PIPELINE_NUMERIC, DTYPE_NUMBER
@@ -97,4 +98,4 @@ if __name__ == '__main__':
 
     prep = pd.DataFrame(array, columns=columns)
 
-    train = prep.drop(KEY_MEDIAN_VALUE, axis=1)
+    features = prep.drop(KEY_MEDIAN_VALUE, axis=1)
