@@ -5,7 +5,7 @@ import pandas as pd
 
 from const import URL_HANDSON_ROOT, PATH_DATASETS
 from utilities import Data
-from pipeline import (
+from pipelines import (
     NumericPipeline, CategoryPipeline, UnionPipeline,
     PIPELINE_CATEGORICAL, PIPELINE_NUMERIC, DTYPE_NUMBER
 )
@@ -80,12 +80,12 @@ if __name__ == '__main__':
 
     prep = train.copy()
 
-    pipelines = [
+    pipes = [
         (PIPELINE_NUMERIC, NumericPipeline(prep, agents(prep))),
         (PIPELINE_CATEGORICAL, CategoryPipeline(prep))
     ]
 
-    pipeline = UnionPipeline(pipelines)
+    pipeline = UnionPipeline(pipes)
 
     array = pipeline.fit_transform(prep)
 
