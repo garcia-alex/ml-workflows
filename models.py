@@ -114,7 +114,10 @@ class BinaryClassifierModel(GenericModel):
         if len(self.scores.shape) == 2:
             self.scores = self.scores[:, 1]
 
-        self.auc = roc_auc_score(labels, self.predictions)
+        try:
+            self.auc = roc_auc_score(labels, self.predictions)
+        except ValueError:  # auc is not supported for multinomial classifiers
+            self.auc = 0
 
         self.evaluated = True
 
