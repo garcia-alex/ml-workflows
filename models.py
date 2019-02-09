@@ -109,6 +109,11 @@ class BinaryClassifierModel(GenericModel):
         self.fpr = 1 - self.specificity
 
         self.scores = cross_val_predict(self.model, features, labels, cv=cv, method=method)
+
+        # classifiers using 'predict_proba' return an extra dim for the false class
+        if len(self.scores.shape) == 2:
+            self.scores = self.scores[:, 1]
+
         self.auc = roc_auc_score(labels, self.predictions)
 
         self.evaluated = True

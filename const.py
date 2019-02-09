@@ -1,3 +1,6 @@
+METHOD_DECISION_FUNCTION = 'decision_function'
+METHOD_PREDICT_PROBA = 'predict_proba'
+
 PATH_DATASETS = 'datasets'
 PATH_SCREENSHOTS = 'screenshots'
 
