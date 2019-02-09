@@ -9,6 +9,10 @@ from sklearn.model_selection import cross_val_score, cross_val_predict
 from const import SCORING_ACCURACY, SCORING_NEG_MEAN_SQ_ERR
 
 
+KEY_CURVE_PR = 'pr'
+KEY_CURVE_ROC = 'roc'
+
+
 class GenericModel(object):
     def __init__(self, algorithm, *args, **kwargs):
         self.algorithm = algorithm
@@ -79,12 +83,15 @@ class ClassifierModel(GenericModel):
     def __init__(self, model, *args, **kwargs):
         super(ClassifierModel, self).__init__(model, *args, **kwargs)
 
-    def evaluate(self, features, labels, cv, method):
+    def evaluate(self, features, labels, cv=3):
         self.train(features, labels)
 
         self.cv = cv
-        self.method = method
-        self.predictions = cross_val_predict(self.model, features, labels, cv=cv)
+
+        if cv == 0:
+            self.predictions = self.model.predict(features)
+        else:
+            self.predictions = cross_val_predict(self.model, features, labels, cv=cv)
 
         self.matrix = confusion_matrix(labels, self.predictions)
 
@@ -110,34 +117,48 @@ class ClassifierModel(GenericModel):
         self.tnr = self.specificity
         self.fpr = 1 - self.specificity
 
-        self.scores = cross_val_predict(self.model, features, labels, cv=cv, method=method)
+        self.evaluated = True
+
+    def auc(self):
+        try:
+            auc = roc_auc_score(self.labels, self.predictions)
+        except ValueError:  # auc is not supported for multinomial classifiers
+            auc = 0
+        
+        return auc
+
+    def curves(self, method):
+        self.method = method
+
+        self.scores = cross_val_predict(
+            self.model,
+            self.features, 
+            self.labels,
+            cv=self.cv,
+            method=method
+        )
 
         # classifiers using 'predict_proba' return an extra dim for the false class
         if len(self.scores.shape) == 2:
             self.scores = self.scores[:, 1]
 
-        try:
-            self.auc = roc_auc_score(labels, self.predictions)
-        except ValueError:  # auc is not supported for multinomial classifiers
-            self.auc = 0
+        result = dict()
 
-        self.evaluated = True
-
-    def pc_curve(self):
         precision, recall, thresholds = precision_recall_curve(
             self.labels,
             self.scores
         )
 
-        return (precision, recall, thresholds)
+        result[KEY_CURVE_PR] = (precision, recall, thresholds)
 
-    def roc_curve(self):
         fpr, tpr, thresholds = roc_curve(
             self.labels,
             self.scores
         )
 
-        return (fpr, tpr, thresholds)
+        result[KEY_CURVE_ROC] = (fpr, tpr, thresholds)
+
+        return result
 
     def cv_score(self):
         score = cross_val_score(
@@ -156,8 +177,7 @@ class ClassifierModel(GenericModel):
         if not self.evaluated:
             return f'{representation}: not applied'
 
-        scores = 'auc: {:.2f}, sensitivity: {:.2f}, specificity: {:.2f}, precision: {:.2f}'.format(
-            self.auc,
+        scores = 'sensitivity: {:.2f}, specificity: {:.2f}, precision: {:.2f}'.format(
             self.sensitivity,
             self.specificity,
             self.precision
