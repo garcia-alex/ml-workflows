@@ -77,10 +77,12 @@ class BinaryClassifierModel(GenericModel):
     def __init__(self, model, *args, **kwargs):
         super(BinaryClassifierModel, self).__init__(model, *args, **kwargs)
 
-    def evaluate(self, features, labels, *args, **kwargs):
+    def evaluate(self, features, labels, cv, method):
         self.train(features, labels)
 
-        self.predictions = cross_val_predict(self.model, features, labels, *args, **kwargs)
+        self.cv = cv
+        self.method = method
+        self.predictions = cross_val_predict(self.model, features, labels, cv=cv)
 
         self.matrix = confusion_matrix(labels, self.predictions)
 
@@ -106,23 +108,26 @@ class BinaryClassifierModel(GenericModel):
         self.tnr = self.specificity
         self.fpr = 1 - self.specificity
 
+        self.scores = cross_val_predict(self.model, features, labels, cv=cv, method=method)
         self.auc = roc_auc_score(labels, self.predictions)
 
         self.evaluated = True
 
-    def pc_curve(self, *args, **kwargs):
-        predictions = cross_val_predict(self.model, self.features, self.labels, *args, **kwargs)
+    def pc_curve(self):
+        precision, recall, thresholds = precision_recall_curve(
+            self.labels,
+            self.scores
+        )
 
-        precision, recall, thresholds = precision_recall_curve(self.labels, predictions)
+        return (precision, recall, thresholds)
 
-        return (precision, recall, thresholds, predictions)
+    def roc_curve(self):
+        fpr, tpr, thresholds = roc_curve(
+            self.labels,
+            self.scores
+        )
 
-    def roc_curve(self, *args, **kwargs):
-        predictions = cross_val_predict(self.model, self.features, self.labels, *args, **kwargs)
-
-        fpr, tpr, thresholds = roc_curve(self.labels, predictions)
-
-        return (fpr, tpr, thresholds, predictions)
+        return (fpr, tpr, thresholds)
 
     def __repr__(self):
         representation = super(BinaryClassifierModel, self).__repr__()
