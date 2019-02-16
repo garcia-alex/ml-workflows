@@ -4,7 +4,7 @@ flake8 \
     --max-line-length=170 \
     --exclude=*/__init__.py \
     --max-complexity=13 \
-    --ignore=E402 \
+    --ignore=E402,E731 \
     .
 
 exit $?
