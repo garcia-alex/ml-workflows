@@ -6,6 +6,7 @@ METHOD_NE = 'normal_equation'
 METHOD_SVD = 'svd_decomposition'
 METHOD_BGD = 'batch_gradient_descent'
 METHOD_SGD = 'stochastic_gradient_descent'
+METHOD_MBGD = 'mini_batch_gradient_descent'
 
 
 def add_bias_vector(X):
@@ -38,18 +39,21 @@ def batch_gradient_descent(X, y, lr=0.1, niter=1000, tolerance=0.0001):
     X_ = add_bias_vector(X)
     m = len(X)
     theta = np.random.randn(len(X_[0]), 1)
+    path = []
 
     for i in range(niter):
         grads = 2 / m * X_.T.dot(X_.dot(theta) - y)
 
         incrs = lr * grads
+        path.append(theta)
         theta = theta - incrs
 
         if np.linalg.norm(grads) < tolerance:
-            print(i)
             break
 
-    return theta
+    path.append(theta)
+
+    return theta, np.array(path)
 
 
 def stochastic_gradient_descent(X, y, epochs=50, lr=0.1, drop=0.5, cycle=10):
@@ -59,6 +63,7 @@ def stochastic_gradient_descent(X, y, epochs=50, lr=0.1, drop=0.5, cycle=10):
     X_ = add_bias_vector(X)
     m = len(X)
     theta = np.random.randn(len(X_[0]), 1)
+    path = []
 
     for epoch in range(epochs):
         for i in range(m):
@@ -70,9 +75,38 @@ def stochastic_gradient_descent(X, y, epochs=50, lr=0.1, drop=0.5, cycle=10):
             grads = 2 * x_.T.dot(x_.dot(theta) - y_)
 
             incrs = lr(epoch) * grads
+            path.append(theta)
             theta = theta - incrs
 
-    return theta
+    path.append(theta)
+
+    return theta, np.array(path)
+
+
+def mini_batch_gradient_descent(X, y, lr=0.1, batch=10, niter=1000, tolerance=0.0001):
+    X_ = add_bias_vector(X)
+    m = len(X)
+    theta = np.random.randn(len(X_[0]), 1)
+    path = []
+
+    for i in range(niter):
+        index = np.random.choice(m, batch, replace=True)
+
+        x_ = X_[index]
+        y_ = y[index]
+
+        grads = 2 / batch * x_.T.dot(x_.dot(theta) - y_)
+
+        incrs = lr * grads
+        path.append(theta)
+        theta = theta - incrs
+
+        if np.linalg.norm(grads) < tolerance:
+            break
+
+    path.append(theta)
+
+    return theta, np.array(path)
 
 
 def generate_data(theta, count=100):
@@ -93,7 +127,8 @@ def linear_fit(X, y, algo=METHOD_NE, *args, **kwargs):
         METHOD_NE: normal_equation,
         METHOD_SVD: svd_decomposition,
         METHOD_BGD: batch_gradient_descent,
-        METHOD_SGD: stochastic_gradient_descent
+        METHOD_SGD: stochastic_gradient_descent,
+        METHOD_MBGD: mini_batch_gradient_descent
     }
 
     method = mapping[algo]
