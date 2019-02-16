@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 DTYPE_NUMBER = 'number'
 DTYPE_OBJECT = 'object'
 
+NAME_PERMUTATOR = 'permutator'
 NAME_SELECTOR = 'selector'
 NAME_IMPUTER = 'imputer'
 NAME_ENGINEER = 'engineer'
@@ -20,6 +21,17 @@ PIPELINE_NUMERIC = 'numeric'
 PIPELINE_CATEGORICAL = 'categorical'
 
 STRATEGY_MEDIAN = 'median'
+
+
+class Permutator(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        pass
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        return X, y
 
 
 class AttributeSelector(BaseEstimator, TransformerMixin):
@@ -48,6 +60,15 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
             X_ = np.c_[X_, array]
 
         return X_
+
+
+class DefaultPipeline(Pipeline):
+    def __init__(self):
+        pipeline = [
+            (NAME_PERMUTATOR, Permutator()),
+        ]
+
+        super(DefaultPipeline, self).__init__(pipeline)
 
 
 class NumericPipeline(Pipeline):

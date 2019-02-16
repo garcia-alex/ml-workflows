@@ -3,14 +3,14 @@ import os
 import numpy as np
 import pandas as pd
 
-from utilities import Data, URL_ROOT, PATH_DATASETS
-from pipeline import (
+from const import URL_HANDSON_ROOT, PATH_DATASETS
+from utilities import Data
+from pipelines import (
     NumericPipeline, CategoryPipeline, UnionPipeline,
     PIPELINE_CATEGORICAL, PIPELINE_NUMERIC, DTYPE_NUMBER
 )
-from evaluation import Evaluation
 
-URL_HOUSING = f"{URL_ROOT}/datasets/housing/housing.tgz"
+URL_HOUSING = f"{URL_HANDSON_ROOT}/datasets/housing/housing.tgz"
 PATH_HOUSING = os.path.join(PATH_DATASETS, "housing")
 FILE_HOUSING = 'housing.csv'
 
@@ -80,12 +80,12 @@ if __name__ == '__main__':
 
     prep = train.copy()
 
-    pipelines = [
+    pipes = [
         (PIPELINE_NUMERIC, NumericPipeline(prep, agents(prep))),
         (PIPELINE_CATEGORICAL, CategoryPipeline(prep))
     ]
 
-    pipeline = UnionPipeline(pipelines)
+    pipeline = UnionPipeline(pipes)
 
     array = pipeline.fit_transform(prep)
 
@@ -98,4 +98,4 @@ if __name__ == '__main__':
 
     prep = pd.DataFrame(array, columns=columns)
 
-    train = prep.drop(KEY_MEDIAN_VALUE, axis=1)
+    features = prep.drop(KEY_MEDIAN_VALUE, axis=1)
