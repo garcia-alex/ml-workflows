@@ -2,6 +2,8 @@ import numpy as np
 
 
 def generate_data(theta, count=100):
+    np.random.seed(seed=42)
+
     X = 2 * np.random.rand(count, 1)
     noise = np.random.randn(count, 1)
 
@@ -36,11 +38,7 @@ def linear_predict(X, theta):
 
 
 if __name__ == '__main__':
-    formatter = {
-        'float': lambda x: f'{x:.4f}'
-    }
-
-    np.set_printoptions(formatter=formatter)
+    np.set_printoptions(precision=4)
     
     theta = [4, 3]
     X, y = generate_data(theta)

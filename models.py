@@ -41,8 +41,8 @@ class GenericModel(object):
 
 
 class RegressionModel(GenericModel):
-    def __init__(self, model, *args, **kwargs):
-        super(RegressionModel, self).__init__(model, *args, **kwargs)
+    def __init__(self, algorithm, *args, **kwargs):
+        super(RegressionModel, self).__init__(algorithm, *args, **kwargs)
 
     def evaluate(self, features, labels):
         self.train(features, labels)
@@ -74,6 +74,44 @@ class RegressionModel(GenericModel):
             self.rmse,
             self.scores.mean(),
             self.scores.std()
+        )
+
+        return representation
+
+
+class LinearRegressionModel(RegressionModel):
+    def __init__(self, algorithm, *args, **kwargs):
+        super().__init__(algorithm, *args, **kwargs)
+
+    def evaluate(self, features, labels):
+        super().evaluate(features, labels)
+
+        shape = (len(self.features), 1)
+        o = np.ones(shape)
+
+        X_ = np.c_[o, self.features]
+        y = self.labels
+
+        theta, residuals, rank, sigmas = np.linalg.lstsq(X_, y, rcond=None)
+        self.theta = theta
+        self.residuals = residuals
+        self.sigmas = sigmas
+    
+    def __repr__(self):
+        representation = super().__repr__()
+
+        if not self.evaluated:
+            return representation
+
+        theta = ', '.join(map(lambda x: f'{x:.4f}', self.theta.flatten()))
+        residuals = ', '.join(map(lambda x: f'{x:.4f}', self.residuals.flatten()))
+        sigmas = ', '.join(map(lambda x: f'{x:.4f}', self.sigmas.flatten()))
+
+        representation = '{0},\ntheta: [{1}], residuals: [{2}], sigmas: [{3}]'.format(
+            representation,
+            theta,
+            residuals,
+            sigmas
         )
 
         return representation
