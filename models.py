@@ -96,7 +96,7 @@ class LinearRegressionModel(RegressionModel):
         self.theta = theta
         self.residuals = residuals
         self.sigmas = sigmas
-    
+
     def __repr__(self):
         representation = super().__repr__()
 
@@ -162,7 +162,7 @@ class ClassifierModel(GenericModel):
             auc = roc_auc_score(self.labels, self.predictions)
         except ValueError:  # auc is not supported for multinomial classifiers
             auc = 0
-        
+
         return auc
 
     def curves(self, method):
@@ -170,7 +170,7 @@ class ClassifierModel(GenericModel):
 
         self.scores = cross_val_predict(
             self.model,
-            self.features, 
+            self.features,
             self.labels,
             cv=self.cv,
             method=method
