@@ -1,5 +1,6 @@
 flake8
 jupyter
+jupyterthemes
 matplotlib
 numpy
 pandas
