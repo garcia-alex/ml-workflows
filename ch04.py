@@ -1,4 +1,6 @@
 import math
+import functools
+
 import numpy as np
 
 
@@ -7,6 +9,25 @@ METHOD_SVD = 'svd_decomposition'
 METHOD_BGD = 'batch_gradient_descent'
 METHOD_SGD = 'stochastic_gradient_descent'
 METHOD_MBGD = 'mini_batch_gradient_descent'
+
+
+def bias(method):
+    @functools.wraps(method)
+    def wrapper(*args, **kwargs):
+        has_bias = kwargs.get('has_bias', False)
+        X= args[0]
+
+        if has_bias:
+            X_ = X
+        else: 
+            X_ = add_bias_vector(X)
+
+        args_ = [X_] + list(args[1:])
+
+        result = method(*args_, **kwargs)
+
+        return result
+    return wrapper
 
 
 def add_bias_vector(X):
@@ -18,31 +39,29 @@ def add_bias_vector(X):
     return X_
 
 
+@bias
 def normal_equation(X, y):
-    X_ = add_bias_vector(X)
-
-    theta = np.linalg.inv(X_.T.dot(X_))
-    theta = theta.dot(X_.T).dot(y)
+    theta = np.linalg.inv(X.T.dot(X))
+    theta = theta.dot(X.T).dot(y)
 
     return theta
 
 
+@bias
 def svd_decomposition(X, y):
-    X_ = add_bias_vector(X)
-
-    theta = np.linalg.pinv(X_).dot(y)
+    theta = np.linalg.pinv(X).dot(y)
 
     return theta
 
 
+@bias
 def batch_gradient_descent(X, y, lr=0.1, niter=1000, tolerance=0.0001):
-    X_ = add_bias_vector(X)
     m = len(X)
-    theta = np.random.randn(len(X_[0]), 1)
+    theta = np.random.randn(len(X[0]), 1)
     path = []
 
     for i in range(niter):
-        grads = 2 / m * X_.T.dot(X_.dot(theta) - y)
+        grads = 2 / m * X.T.dot(X.dot(theta) - y)
 
         incrs = lr * grads
         path.append(theta)
@@ -56,20 +75,20 @@ def batch_gradient_descent(X, y, lr=0.1, niter=1000, tolerance=0.0001):
     return theta, np.array(path)
 
 
+@bias
 def stochastic_gradient_descent(X, y, epochs=50, lr=0.1, drop=0.5, cycle=10):
     ilr = lr
     lr = lambda x: ilr * pow(drop, math.floor(x / cycle))
 
-    X_ = add_bias_vector(X)
     m = len(X)
-    theta = np.random.randn(len(X_[0]), 1)
+    theta = np.random.randn(len(X[0]), 1)
     path = []
 
     for epoch in range(epochs):
         for i in range(m):
             j = np.random.randint(m)
 
-            x_ = X_[j: j + 1]
+            x_ = X[j: j + 1]
             y_ = y[j: j + 1]
 
             grads = 2 * x_.T.dot(x_.dot(theta) - y_)
@@ -83,16 +102,16 @@ def stochastic_gradient_descent(X, y, epochs=50, lr=0.1, drop=0.5, cycle=10):
     return theta, np.array(path)
 
 
+@bias
 def mini_batch_gradient_descent(X, y, lr=0.1, batch=10, niter=1000, tolerance=0.0001):
-    X_ = add_bias_vector(X)
     m = len(X)
-    theta = np.random.randn(len(X_[0]), 1)
+    theta = np.random.randn(len(X[0]), 1)
     path = []
 
     for i in range(niter):
         index = np.random.choice(m, batch, replace=True)
 
-        x_ = X_[index]
+        x_ = X[index]
         y_ = y[index]
 
         grads = 2 / batch * x_.T.dot(x_.dot(theta) - y_)
@@ -109,10 +128,10 @@ def mini_batch_gradient_descent(X, y, lr=0.1, batch=10, niter=1000, tolerance=0.
     return theta, np.array(path)
 
 
-def generate_data(theta, count=100):
+def generate_data(theta, count=100, v=2, u=0):
     np.random.seed(seed=42)
 
-    X = 2 * np.random.rand(count, 1)
+    X = v * np.random.rand(count, 1) + u
     noise = np.random.randn(count, 1)
 
     poly = sum([n * pow(X, i) for (i, n) in enumerate(theta)])
@@ -142,9 +161,9 @@ def linear_predict(X, theta):
     shape = (len(X), 1)
     o = np.ones(shape)
 
-    X_ = np.c_[o, X]
+    X = np.c_[o, X]
 
-    y = X_.dot(theta)
+    y = X.dot(theta)
 
     return y
 
