@@ -44,8 +44,11 @@ def add_bias_vector(X):
 
 
 @bias
-def normal_equation(X, y):
-    theta = np.linalg.inv(X.T.dot(X))
+def normal_equation(X, y, alpha=0):
+    A = np.identity(len(X[0]))
+    A[0][0] = 0
+
+    theta = np.linalg.inv(X.T.dot(X) + alpha*A)
     theta = theta.dot(X.T).dot(y)
 
     return theta
@@ -64,7 +67,7 @@ def batch_gradient_descent(X, y, lr=0.1, niter=1000, tolerance=0.0001):
     theta = np.random.randn(len(X[0]), 1)
     path = []
 
-    for i in range(niter):
+    for _ in range(niter):
         grads = 2 / m * X.T.dot(X.dot(theta) - y)
 
         incrs = lr * grads
@@ -89,7 +92,7 @@ def stochastic_gradient_descent(X, y, epochs=50, lr=0.1, drop=0.5, cycle=10):
     path = []
 
     for epoch in range(epochs):
-        for i in range(m):
+        for _ in range(m):
             j = np.random.randint(m)
 
             x_ = X[j: j + 1]
@@ -112,7 +115,7 @@ def mini_batch_gradient_descent(X, y, lr=0.1, batch=10, niter=1000, tolerance=0.
     theta = np.random.randn(len(X[0]), 1)
     path = []
 
-    for i in range(niter):
+    for _ in range(niter):
         index = np.random.choice(m, batch, replace=True)
 
         x_ = X[index]
@@ -161,15 +164,9 @@ def linear_fit(X, y, algo=METHOD_NE, *args, **kwargs):
     return theta
 
 
+@bias
 def linear_predict(X, theta):
-    shape = (len(X), 1)
-    o = np.ones(shape)
-
-    X = np.c_[o, X]
-
-    y = X.dot(theta)
-
-    return y
+    return X.dot(theta)
 
 
 def learning_curves(X, y, n=5, rs=None, aggr='mean'):
