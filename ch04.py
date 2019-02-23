@@ -48,7 +48,7 @@ def normal_equation(X, y, alpha=0):
     A = np.identity(len(X[0]))
     A[0][0] = 0
 
-    theta = np.linalg.inv(X.T.dot(X) + alpha*A)
+    theta = np.linalg.inv(X.T.dot(X) + alpha * A)
     theta = theta.dot(X.T).dot(y)
 
     return theta
