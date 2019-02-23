@@ -2,6 +2,7 @@ import math
 import functools
 
 import numpy as np
+from sklearn import clone
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import learning_curve, train_test_split
 from sklearn.linear_model import LinearRegression
@@ -171,32 +172,47 @@ def linear_predict(X, theta):
     return y
 
 
-def learning_curves(X, y):
-    Xt, Xv, yt, yv = train_test_split(X, y, test_size=0.2)
-    model = LinearRegression()
+def learning_curves(X, y, n=5, rs=None, aggr='mean'):
+    def one_pass():
+        Xt, Xv, yt, yv = train_test_split(X, y, test_size=0.2, random_state=rs)
+        model = LinearRegression()
 
-    def fit_predict_subset(m):
-        model.fit(Xt[:m], yt[:m])
-        ypt = model.predict(Xt[:m])
-        ypv = model.predict(Xv)
-        et = mean_squared_error(yt[:m], ypt)
-        ev = mean_squared_error(yv, ypv)
-        return (et, ev)
+        def fit_predict_subset(m):
+            estimator = clone(model)
+            estimator.fit(Xt[:m], yt[:m])
+            ypt = estimator.predict(Xt[:m])
+            ypv = estimator.predict(Xv)
+            et = mean_squared_error(yt[:m], ypt)
+            ev = mean_squared_error(yv, ypv)
+            return (et, ev)
 
-    lengths = range(1, len(Xt))
-    errors = map(fit_predict_subset, lengths)
-    errors = np.array(list(errors))
-    rmset = np.sqrt(errors[:, 0])
-    rmsev = np.sqrt(errors[:, 1])
+        lengths = range(1, len(Xt))
+        errors = map(fit_predict_subset, lengths)
+        errors = np.array(list(errors))
+        rmset = np.sqrt(errors[:, 0])
+        rmsev = np.sqrt(errors[:, 1])
 
-    return (rmset, rmsev)
+        return (rmset, rmsev)
+
+    Et, Ev = [], []
+
+    for i in range(n):
+        et, ev = one_pass()
+        Et.append(et)
+        Ev.append(ev)
+
+    method = getattr(np, aggr)
+    et = method(np.array(list(zip(*Et))), axis=1)
+    ev = method(np.array(list(zip(*Ev))), axis=1)
+
+    return (et, ev)
 
 
 def learning_curves_2(X, y):
     model = LinearRegression()
     m = int(len(X) * 0.8)
 
-    M, Et, Ev = learning_curve(
+    _, Et, Ev = learning_curve(
         estimator=model,
         X=X,
         y=y,
