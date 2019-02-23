@@ -2,6 +2,9 @@ import math
 import functools
 
 import numpy as np
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import learning_curve, train_test_split
+from sklearn.linear_model import LinearRegression
 
 
 METHOD_NE = 'normal_equation'
@@ -15,11 +18,11 @@ def bias(method):
     @functools.wraps(method)
     def wrapper(*args, **kwargs):
         has_bias = kwargs.get('has_bias', False)
-        X= args[0]
+        X = args[0]
 
         if has_bias:
             X_ = X
-        else: 
+        else:
             X_ = add_bias_vector(X)
 
         args_ = [X_] + list(args[1:])
@@ -166,6 +169,49 @@ def linear_predict(X, theta):
     y = X.dot(theta)
 
     return y
+
+
+def learning_curves(X, y):
+    Xt, Xv, yt, yv = train_test_split(X, y, test_size=0.2)
+    model = LinearRegression()
+
+    def fit_predict_subset(m):
+        model.fit(Xt[:m], yt[:m])
+        ypt = model.predict(Xt[:m])
+        ypv = model.predict(Xv)
+        et = mean_squared_error(yt[:m], ypt)
+        ev = mean_squared_error(yv, ypv)
+        return (et, ev)
+
+    lengths = range(1, len(Xt))
+    errors = map(fit_predict_subset, lengths)
+    errors = np.array(list(errors))
+    rmset = np.sqrt(errors[:, 0])
+    rmsev = np.sqrt(errors[:, 1])
+
+    return (rmset, rmsev)
+
+
+def learning_curves_2(X, y):
+    model = LinearRegression()
+    m = int(len(X) * 0.8)
+
+    M, Et, Ev = learning_curve(
+        estimator=model,
+        X=X,
+        y=y,
+        train_sizes=range(1, m),
+        cv=5,
+        scoring='neg_mean_squared_error'
+    )
+
+    mset = -Et.mean(axis=1)
+    msev = -Ev.mean(axis=1)
+
+    rmset = np.sqrt(mset)
+    rmsev = np.sqrt(msev)
+
+    return (rmset, rmsev)
 
 
 if __name__ == '__main__':
