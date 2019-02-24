@@ -2,7 +2,6 @@ import math
 import functools
 
 import numpy as np
-from sklearn import clone
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import learning_curve, train_test_split
 from sklearn.linear_model import LinearRegression
@@ -175,17 +174,21 @@ def learning_curves(X, y, n=5, rs=None, aggr='mean'):
         model = LinearRegression()
 
         def fit_predict_subset(m):
-            estimator = clone(model)
-            estimator.fit(Xt[:m], yt[:m])
-            ypt = estimator.predict(Xt[:m])
-            ypv = estimator.predict(Xv)
+            model.fit(Xt[:m], yt[:m])
+
+            ypt = model.predict(Xt[:m])
+            ypv = model.predict(Xv)
+
             et = mean_squared_error(yt[:m], ypt)
             ev = mean_squared_error(yv, ypv)
+
             return (et, ev)
 
         lengths = range(1, len(Xt))
+
         errors = map(fit_predict_subset, lengths)
         errors = np.array(list(errors))
+
         rmset = np.sqrt(errors[:, 0])
         rmsev = np.sqrt(errors[:, 1])
 
@@ -193,14 +196,19 @@ def learning_curves(X, y, n=5, rs=None, aggr='mean'):
 
     Et, Ev = [], []
 
-    for i in range(n):
+    for _ in range(n):
         et, ev = one_pass()
+
         Et.append(et)
         Ev.append(ev)
 
+    Et = np.array(list(zip(*Et)))
+    Ev = np.array(list(zip(*Ev)))
+
     method = getattr(np, aggr)
-    et = method(np.array(list(zip(*Et))), axis=1)
-    ev = method(np.array(list(zip(*Ev))), axis=1)
+
+    et = method(Et, axis=1)
+    ev = method(Ev, axis=1)
 
     return (et, ev)
 
