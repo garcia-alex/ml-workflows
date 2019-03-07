@@ -1,9 +1,10 @@
 import numpy as np
+import pandas as pd
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures, OneHotEncoder
 
 
 DTYPE_NUMBER = 'number'
@@ -15,7 +16,9 @@ NAME_IMPUTER = 'imputer'
 NAME_ENGINEER = 'engineer'
 NAME_SCALER_STD = 'scaler_std'
 NAME_SCALER_NORM = 'scaler_norm'
+NAME_FEATURES_POLY = 'features_poly'
 NAME_ENCODER = 'encoder'
+NAME_MODEL = 'model'
 
 PIPELINE_NUMERIC = 'numeric'
 PIPELINE_CATEGORICAL = 'categorical'
@@ -42,6 +45,9 @@ class AttributeSelector(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None):
+        if type(X) != pd.core.frame.DataFrame:
+            X = pd.DataFrame(X)
+
         return X[self.attributes].values
 
 
@@ -72,8 +78,11 @@ class DefaultPipeline(Pipeline):
 
 
 class NumericPipeline(Pipeline):
-    def __init__(self, df, agents=[], strategy=STRATEGY_MEDIAN, scale=True):
-        self.attributes = df.select_dtypes(include=[DTYPE_NUMBER]).columns
+    def __init__(self, X, agents=[], strategy=STRATEGY_MEDIAN, scale=True, degree=1, bias=False, model_=None):
+        if type(X) != pd.core.frame.DataFrame:
+            X = pd.DataFrame(X)
+
+        self.attributes = X.select_dtypes(include=[DTYPE_NUMBER]).columns
 
         pipeline = [
             (NAME_SELECTOR, AttributeSelector(self.attributes)),
@@ -85,13 +94,27 @@ class NumericPipeline(Pipeline):
             pipeline.append(
                 (NAME_SCALER_STD, StandardScaler())
             )
+        
+        if bias == True or degree > 1:
+            poly = PolynomialFeatures(degree=degree, include_bias=bias)
+            pipeline.append(
+                (NAME_FEATURES_POLY, poly)
+            )
+                
+        if model_ is not None:
+            pipeline.append(
+                (NAME_MODEL, model_)
+            )
 
         super(NumericPipeline, self).__init__(pipeline)
 
 
 class CategoryPipeline(Pipeline):
-    def __init__(self, df, sparse=False):
-        self.attributes = df.select_dtypes(exclude=[DTYPE_NUMBER]).columns
+    def __init__(self, X, sparse=False):
+        if type(X) != pd.core.frame.DataFrame:
+            X = pd.DataFrame(X)
+
+        self.attributes = X.select_dtypes(exclude=[DTYPE_NUMBER]).columns
 
         pipeline = [
             (NAME_SELECTOR, AttributeSelector(self.attributes)),
