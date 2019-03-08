@@ -74,11 +74,9 @@ class NestedCrossValidation(object):
         grid = self._params[NCV_KEY_CONFIG_GRID]
 
         cv, args, kwargs = self._params[NCV_KEY_CONFIG_INNER]
-        kwargs['random_state'] = i
         inner = cv(*args, **kwargs)
 
         cv, args, kwargs = self._params[NCV_KEY_CONFIG_OUTER]
-        kwargs['random_state'] = i
         outer = cv(*args, **kwargs)
 
         X = self._eparams[NCV_KEY_EVAL_FEATURES]
