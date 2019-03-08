@@ -94,13 +94,13 @@ class NumericPipeline(Pipeline):
             pipeline.append(
                 (NAME_SCALER_STD, StandardScaler())
             )
-        
-        if bias == True or degree > 1:
+
+        if bias is True or degree > 1:
             poly = PolynomialFeatures(degree=degree, include_bias=bias)
             pipeline.append(
                 (NAME_FEATURES_POLY, poly)
             )
-                
+
         if model_ is not None:
             pipeline.append(
                 (NAME_MODEL, model_)
