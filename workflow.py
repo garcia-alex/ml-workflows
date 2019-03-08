@@ -1,5 +1,8 @@
 import numpy as np
+
 from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler  # , PolynomialFeatures
 from sklearn.model_selection import GridSearchCV, cross_val_score
 
 from logger import logger
@@ -22,15 +25,28 @@ NCV_KEY_EVAL_ESTIMATOR = 'estimator'
 NCV_KEY_EVAL_FEATURES = 'features'
 NCV_KEY_EVAL_LABELS = 'labels'
 NCV_KEY_EVAL_NESTED = 'nested'
+NCV_KEY_EVAL_SCALE = 'scale'
+NCV_KEY_EVAL_IID = 'iid'
 NCV_KEY_EVAL_VERBOSE = 'verbose'
 
-NCV_ERRORS_PARAMS = {
-    NCV_KEY_CONFIG_DIMR: 'The dimensionality reducer is not set.',
-    NCV_KEY_CONFIG_MODEL: 'The estimator model is not set.',
-    NCV_KEY_CONFIG_HYPER: 'The hyper parameters grid is not set.',
-    NCV_KEY_CONFIG_INNER: 'The inner loop cross-validator is not set.',
-    NCV_KEY_CONFIG_OUTER: 'The outer loop cross-validator is not set.'
+NCV_PARAMS_WARNINGS = {
+    NCV_KEY_CONFIG_INNER: 'The inner loop cv splitter is not set, will use sklearn default.',
+    NCV_KEY_CONFIG_OUTER: 'The outer loop cv splitter is not set, will use sklearn default.',
+    NCV_KEY_CONFIG_DIMR: 'The dimensionality reducer is not set, will skip operation.'
 }
+
+NCV_PARAMS_ERRORS = {
+    NCV_KEY_CONFIG_MODEL: 'The estimator model is not set.',
+    NCV_KEY_CONFIG_HYPER: 'The hyper parameters grid is not set.'
+}
+
+NCV_PIPELINE_KEY_IMPUTER = 'imputer'
+NCV_PIPELINE_KEY_SCALER = 'scaler'
+NCV_PIPELINE_KEY_POLY = 'poly'
+NCV_PIPELINE_KEY_DIMR = 'dimr'
+NCV_PIPELINE_KEY_MODEL = 'model'
+
+NCV_IMPUTER_STRATEGY_MEDIAN = 'median'
 
 
 class NestedCrossValidation(object):
@@ -59,45 +75,69 @@ class NestedCrossValidation(object):
         return (o, args, kwargs)
 
     def _assess(self):
-        for key, msg in NCV_ERRORS_PARAMS.items():
+        for key, msg in NCV_PARAMS_ERRORS.items():
             if self._params[key] is None:
                 raise AttributeError(msg)
 
+        verbose = self._eparams[NCV_KEY_EVAL_VERBOSE]
+
+        if verbose:
+            for key, msg in NCV_PARAMS_WARNINGS.items():
+                if self._params[key] is None:
+                    logger.warn(msg)
+
     def _reset(self):
         self._eparams = {
-            NCV_KEY_EVAL_VERBOSE: False,
-
             NCV_KEY_EVAL_FEATURES: None,
             NCV_KEY_EVAL_LABELS: None,
 
+            NCV_KEY_EVAL_NESTED: True,
+            NCV_KEY_EVAL_SCALE: True,
+            NCV_KEY_EVAL_IID: True,
+
+            NCV_KEY_EVAL_VERBOSE: False,
+
             NCV_KEY_EVAL_DIMR: None,
-            NCV_KEY_EVAL_ESTIMATOR: None,
-            NCV_KEY_EVAL_NESTED: True
+            NCV_KEY_EVAL_ESTIMATOR: None
         }
 
     def _pipeline(self):
+        dimr = self._eparams[NCV_KEY_EVAL_DIMR]
+        scale = self._eparams[NCV_KEY_EVAL_SCALE]
         estimator = self._eparams[NCV_KEY_EVAL_ESTIMATOR]
 
-        pipeline = Pipeline([
-            (NCV_KEY_CONFIG_DIMR, None),
-            (NCV_KEY_CONFIG_MODEL, estimator)
-        ])
+        params = [
+            (NCV_PIPELINE_KEY_IMPUTER, SimpleImputer(strategy=NCV_IMPUTER_STRATEGY_MEDIAN))
+        ]
+
+        if scale:
+            params.append((NCV_PIPELINE_KEY_SCALER, StandardScaler()))
+
+        if dimr:
+            params.append((NCV_PIPELINE_KEY_DIMR, None))
+
+        params.append((NCV_PIPELINE_KEY_MODEL, estimator))
+
+        pipeline = Pipeline(params)
 
         return pipeline
 
     def _grid(self):
+        params = {}
+
         dimr = self._eparams[NCV_KEY_EVAL_DIMR]
 
-        grid = [{
-            NCV_KEY_CONFIG_DIMR: [dimr]
-        }]
+        if dimr:
+            params[NCV_KEY_CONFIG_DIMR] = [dimr]
 
-        hyper = self._params[NCV_KEY_CONFIG_HYPER]
+        hyper = self._params[NCV_KEY_CONFIG_HYPER] or {}
 
         for key in (NCV_KEY_CONFIG_MODEL, NCV_KEY_CONFIG_DIMR):
             for param, values in hyper.get(key, {}).items():
                 name = f'{key}__{param}'
-                grid[0][name] = values
+                params[name] = values
+
+        grid = [params]
 
         return grid
 
@@ -106,22 +146,18 @@ class NestedCrossValidation(object):
             cv, args, kwargs = self._params[key]
             splitter = cv(*args, **kwargs)
         else:
-            splitter = None
+            splitter = 5
 
         return splitter
 
-    def _trial(self, i):
-        verbose = self._eparams[NCV_KEY_EVAL_VERBOSE]
-
+    def _trial(self, pipeline, grid):
         X = self._eparams[NCV_KEY_EVAL_FEATURES]
         y = self._eparams[NCV_KEY_EVAL_LABELS]
 
-        pipeline = self._pipeline()
-        grid = self._grid()
-
         inner = self._splitter(NCV_KEY_CONFIG_INNER)
+        iid = self._eparams[NCV_KEY_EVAL_IID]
 
-        clf = GridSearchCV(pipeline, param_grid=grid, cv=inner, iid=True)
+        clf = GridSearchCV(pipeline, param_grid=grid, cv=inner, iid=iid)
         clf.fit(X, y)
 
         if self._eparams[NCV_KEY_EVAL_NESTED] is True:
@@ -130,9 +166,6 @@ class NestedCrossValidation(object):
             score = scores.mean()
         else:
             score = clf.best_score_
-
-        if verbose:
-            logger.info((i, score))
 
         return score
 
@@ -146,19 +179,25 @@ class NestedCrossValidation(object):
             NCV_KEY_CONFIG_TRIALS: NCV_DEFAULT_TRIALS
         }
 
-    def evaluate(self, X, y, nested=True, verbose=False):
-        self._assess()
+    def evaluate(self, X, y, scale=True, nested=True, iid=True, verbose=False):
         self._reset()
-
-        self._eparams[NCV_KEY_EVAL_VERBOSE] = verbose
 
         self._eparams[NCV_KEY_EVAL_FEATURES] = X
         self._eparams[NCV_KEY_EVAL_LABELS] = y
 
+        self._eparams[NCV_KEY_EVAL_SCALE] = scale
         self._eparams[NCV_KEY_EVAL_NESTED] = nested
+        self._eparams[NCV_KEY_EVAL_IID] = iid
 
-        dimr, args, kwargs = self._params[NCV_KEY_CONFIG_DIMR]
-        self._eparams[NCV_KEY_EVAL_DIMR] = dimr(*args, **kwargs)
+        self._eparams[NCV_KEY_EVAL_VERBOSE] = verbose
+
+        self._assess()
+
+        try:
+            dimr, args, kwargs = self._params[NCV_KEY_CONFIG_DIMR]
+            self._eparams[NCV_KEY_EVAL_DIMR] = dimr(*args, **kwargs)
+        except TypeError:
+            pass
 
         model, args, kwargs = self._params[NCV_KEY_CONFIG_MODEL]
         self._eparams[NCV_KEY_EVAL_ESTIMATOR] = model(*args, **kwargs)
@@ -166,8 +205,11 @@ class NestedCrossValidation(object):
         trials = self._params[NCV_KEY_CONFIG_TRIALS]
         scores = np.zeros((trials, 1), dtype=np.float64)
 
+        pipeline = self._pipeline()
+        grid = self._grid()
+
         for i in range(trials):
-            scores[i, :] = self._trial(i)
+            scores[i, :] = self._trial(pipeline, grid)
 
         self._reset()
 

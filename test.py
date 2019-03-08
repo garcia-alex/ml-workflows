@@ -1,5 +1,4 @@
 from sklearn.datasets import load_iris
-from sklearn.svm import SVC
 from sklearn.decomposition import PCA, NMF
 from sklearn.model_selection import (
     KFold,
@@ -8,23 +7,32 @@ from sklearn.model_selection import (
     ShuffleSplit,
     StratifiedShuffleSplit
 )
+from sklearn.svm import SVC
 
 from workflow import NestedCrossValidation
 
 
 if __name__ == '__main__':
+    iris = load_iris()
+    X = iris.data
+    y = iris.target
+
     ncv = NestedCrossValidation()
 
     ncv.model = (SVC, dict(kernel='rbf'))
 
     ncv.hyper = {
-        'dimr': {
-            'n_components': [1, 2, 3]
-        },
         'model': {
             'C': [1, 10, 100],
             'gamma': [.01, .1]
         }
+    }
+
+    scores = ncv.evaluate(X, y, verbose=True)
+    print(scores)
+
+    ncv.hyper['dimr'] = {
+        'n_components': [1, 2, 3]
     }
 
     pca = (PCA, dict(iterated_power=7))
@@ -47,10 +55,6 @@ if __name__ == '__main__':
 
             ncv.outer = splitter
             ncv.inner = splitter
-
-            iris = load_iris()
-            X = iris.data
-            y = iris.target
 
             scores = ncv.evaluate(X, y)
 
