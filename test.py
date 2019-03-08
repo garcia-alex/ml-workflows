@@ -1,5 +1,6 @@
 from sklearn.datasets import load_iris
 from sklearn.svm import SVC
+from sklearn.decomposition import PCA, NMF
 from sklearn.model_selection import (
     KFold,
     RepeatedKFold,
@@ -13,11 +14,21 @@ from workflow import NestedCrossValidation
 
 if __name__ == '__main__':
     ncv = NestedCrossValidation()
+
     ncv.model = (SVC, dict(kernel='rbf'))
-    ncv.grid = {
-        'C': [1, 10, 100],
-        'gamma': [.01, .1]
+
+    ncv.hyper = {
+        'dimr': {
+            'n_components': [1, 2, 3]
+        },
+        'model': {
+            'C': [1, 10, 100],
+            'gamma': [.01, .1]
+        }
     }
+
+    pca = (PCA, dict(iterated_power=7))
+    nmf = (NMF, dict())
 
     kfold = (KFold, dict(n_splits=4, shuffle=True))
     rkfold = (RepeatedKFold, dict(n_splits=2, n_repeats=2))
@@ -25,18 +36,22 @@ if __name__ == '__main__':
     shuffle = (ShuffleSplit, dict(n_splits=5, test_size=0.25))
     sshuffle = (StratifiedShuffleSplit, dict(n_splits=5, test_size=0.25))
 
-    iterators = (kfold, rkfold, skfold, shuffle, sshuffle)
+    dimrs = (pca, nmf)
+    splitters = (kfold, rkfold, skfold, shuffle, sshuffle)
 
-    for iterator in iterators:
-        print(iterator)
+    for dimr in dimrs:
+        ncv.dimr = dimr
 
-        ncv.outer = iterator
-        ncv.inner = iterator
+        for splitter in splitters:
+            print(dimr, splitter)
 
-        iris = load_iris()
-        X = iris.data
-        y = iris.target
+            ncv.outer = splitter
+            ncv.inner = splitter
 
-        scores = ncv.evaluate(X, y)
+            iris = load_iris()
+            X = iris.data
+            y = iris.target
 
-        print(scores.mean(), scores.std())
+            scores = ncv.evaluate(X, y)
+
+            print(scores.mean(), scores.std())
