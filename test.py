@@ -9,7 +9,7 @@ from sklearn.model_selection import (
 )
 from sklearn.svm import SVC
 
-from workflow import NestedCrossValidation
+from workflow import EvaluationWorkflow
 
 
 if __name__ == '__main__':
@@ -17,21 +17,21 @@ if __name__ == '__main__':
     X = iris.data
     y = iris.target
 
-    ncv = NestedCrossValidation()
+    flow = EvaluationWorkflow()
 
-    ncv.model = (SVC, dict(kernel='rbf'))
+    flow.model = (SVC, dict(kernel='rbf'))
 
-    ncv.hyper = {
+    flow.hyper = {
         'model': {
             'C': [1, 10, 100],
             'gamma': [.01, .1]
         }
     }
 
-    scores = ncv.evaluate(X, y, verbose=True)
+    scores = flow.evaluate(X, y, verbose=True)
     print(scores)
 
-    ncv.hyper['dimr'] = {
+    flow.hyper['dimr'] = {
         'n_components': [1, 2, 3]
     }
 
@@ -48,14 +48,14 @@ if __name__ == '__main__':
     splitters = (kfold, rkfold, skfold, shuffle, sshuffle)
 
     for dimr in dimrs:
-        ncv.dimr = dimr
+        flow.dimr = dimr
 
         for splitter in splitters:
             print(dimr, splitter)
 
-            ncv.outer = splitter
-            ncv.inner = splitter
+            flow.outer = splitter
+            flow.inner = splitter
 
-            scores = ncv.evaluate(X, y)
+            scores = flow.evaluate(X, y)
 
             print(scores.mean(), scores.std())
