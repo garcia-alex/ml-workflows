@@ -1,9 +1,10 @@
 import numpy as np
 
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler  # , PolynomialFeatures
-from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.preprocessing import RobustScaler, MinMaxScaler  # , PolynomialFeatures
+from sklearn.feature_selection import SelectKBest
+from sklearn.model_selection import RandomizedSearchCV, cross_val_score
 
 from logger import logger
 
@@ -13,15 +14,15 @@ __all__ = ['EW_DEFAULT_TRIALS', 'EvaluationWorkflow']
 
 EW_DEFAULT_TRIALS = 10
 
-EW_KEY_CONFIG_DIMR = 'dimr'
+EW_KEY_CONFIG_DIMRS = 'dimrs'
 EW_KEY_CONFIG_MODEL = 'model'
 EW_KEY_CONFIG_HYPER = 'hyper'
 EW_KEY_CONFIG_OUTER = 'outer'
 EW_KEY_CONFIG_INNER = 'inner'
 EW_KEY_CONFIG_TRIALS = 'trials'
 
-EW_KEY_EVAL_DIMR = 'dimr'
-EW_KEY_EVAL_ESTIMATOR = 'estimator'
+EW_KEY_EVAL_DIMRS = 'dimrs'
+EW_KEY_EVAL_MODEL = 'model'
 EW_KEY_EVAL_FEATURES = 'features'
 EW_KEY_EVAL_LABELS = 'labels'
 EW_KEY_EVAL_NESTED = 'nested'
@@ -32,18 +33,21 @@ EW_KEY_EVAL_VERBOSE = 'verbose'
 EW_PARAMS_WARNINGS = {
     EW_KEY_CONFIG_INNER: 'The inner loop cv splitter is not set, will use sklearn default.',
     EW_KEY_CONFIG_OUTER: 'The outer loop cv splitter is not set, will use sklearn default.',
-    EW_KEY_CONFIG_DIMR: 'The dimensionality reducer is not set, will skip operation.'
+    EW_KEY_CONFIG_DIMRS: 'The dimensionality reducers are not set, will skip feature selection.'
 }
 
 EW_PARAMS_ERRORS = {
-    EW_KEY_CONFIG_MODEL: 'The estimator model is not set.',
+    EW_KEY_CONFIG_MODEL: 'The model (regression, classification, or clustering) is not set.',
     EW_KEY_CONFIG_HYPER: 'The hyper parameters grid is not set.'
 }
 
 EW_PIPELINE_KEY_IMPUTER = 'imputer'
-EW_PIPELINE_KEY_SCALER = 'scaler'
+EW_PIPELINE_KEY_SCALER_STANDARD = 'standard'
+EW_PIPELINE_KEY_SCALER_ROBUST = 'robust'
+EW_PIPELINE_KEY_SCALER_MINMAX = 'minmax'
 EW_PIPELINE_KEY_POLY = 'poly'
-EW_PIPELINE_KEY_DIMR = 'dimr'
+EW_PIPELINE_KEY_DIMRS = 'dimrs'
+EW_PIPELINE_KEY_FEATURES = 'features'
 EW_PIPELINE_KEY_MODEL = 'model'
 
 EW_IMPUTER_STRATEGY_MEDIAN = 'median'
@@ -97,26 +101,49 @@ class EvaluationWorkflow(object):
 
             EW_KEY_EVAL_VERBOSE: False,
 
-            EW_KEY_EVAL_DIMR: None,
-            EW_KEY_EVAL_ESTIMATOR: None
+            EW_KEY_EVAL_DIMRS: None,
+            EW_KEY_EVAL_MODEL: None
         }
 
+    def _dimrs(self):
+        if self._params[EW_KEY_CONFIG_DIMRS] is None:
+            return None
+
+        dimrs = []
+
+        for dimr in self._params[EW_KEY_CONFIG_DIMRS]:
+            try:
+                estimator, args, kwargs = self._parse(dimr)
+                dimrs.append(estimator(*args, **kwargs))
+            except TypeError:
+                pass
+
+        dimrs = [(x.__class__.__name__, x) for x in dimrs]
+
+        return dimrs
+
     def _pipeline(self):
-        dimr = self._eparams[EW_KEY_EVAL_DIMR]
+        dimrs = self._eparams[EW_KEY_EVAL_DIMRS]
         scale = self._eparams[EW_KEY_EVAL_SCALE]
-        estimator = self._eparams[EW_KEY_EVAL_ESTIMATOR]
+        model = self._eparams[EW_KEY_EVAL_MODEL]
 
         params = [
             (EW_PIPELINE_KEY_IMPUTER, SimpleImputer(strategy=EW_IMPUTER_STRATEGY_MEDIAN))
         ]
 
-        if scale:
-            params.append((EW_PIPELINE_KEY_SCALER, StandardScaler()))
+        if scale is True:
+            params.extend([
+                (EW_PIPELINE_KEY_SCALER_ROBUST, RobustScaler()),
+                (EW_PIPELINE_KEY_SCALER_MINMAX, MinMaxScaler())
+            ])
 
-        if dimr:
-            params.append((EW_PIPELINE_KEY_DIMR, None))
+        if dimrs is not None:
+            params.extend([
+                (EW_PIPELINE_KEY_DIMRS, FeatureUnion(dimrs)),
+                (EW_PIPELINE_KEY_FEATURES, SelectKBest(k=10))
+            ])
 
-        params.append((EW_PIPELINE_KEY_MODEL, estimator))
+        params.append((EW_PIPELINE_KEY_MODEL, model))
 
         pipeline = Pipeline(params)
 
@@ -125,14 +152,9 @@ class EvaluationWorkflow(object):
     def _grid(self):
         params = {}
 
-        dimr = self._eparams[EW_KEY_EVAL_DIMR]
-
-        if dimr:
-            params[EW_KEY_CONFIG_DIMR] = [dimr]
-
         hyper = self._params[EW_KEY_CONFIG_HYPER] or {}
 
-        for key in (EW_KEY_CONFIG_MODEL, EW_KEY_CONFIG_DIMR):
+        for key in (EW_KEY_CONFIG_MODEL,):
             for param, values in hyper.get(key, {}).items():
                 name = f'{key}__{param}'
                 params[name] = values
@@ -157,7 +179,18 @@ class EvaluationWorkflow(object):
         inner = self._splitter(EW_KEY_CONFIG_INNER)
         iid = self._eparams[EW_KEY_EVAL_IID]
 
+        """
         clf = GridSearchCV(pipeline, param_grid=grid, cv=inner, iid=iid)
+        clf.fit(X, y)
+        """
+
+        from scipy.stats import expon
+
+        grid = {
+            'model__C': expon(scale=100),
+            'model__gamma': expon(scale=.1)
+        }
+        clf = RandomizedSearchCV(pipeline, param_distributions=grid, cv=inner, iid=iid)
         clf.fit(X, y)
 
         if self._eparams[EW_KEY_EVAL_NESTED] is True:
@@ -171,7 +204,7 @@ class EvaluationWorkflow(object):
 
     def __init__(self):
         self._params = {
-            EW_KEY_CONFIG_DIMR: None,
+            EW_KEY_CONFIG_DIMRS: None,
             EW_KEY_CONFIG_MODEL: None,
             EW_KEY_CONFIG_HYPER: None,
             EW_KEY_CONFIG_INNER: None,
@@ -193,17 +226,14 @@ class EvaluationWorkflow(object):
 
         self._assess()
 
-        try:
-            dimr, args, kwargs = self._params[EW_KEY_CONFIG_DIMR]
-            self._eparams[EW_KEY_EVAL_DIMR] = dimr(*args, **kwargs)
-        except TypeError:
-            pass
-
         model, args, kwargs = self._params[EW_KEY_CONFIG_MODEL]
-        self._eparams[EW_KEY_EVAL_ESTIMATOR] = model(*args, **kwargs)
+        self._eparams[EW_KEY_EVAL_MODEL] = model(*args, **kwargs)
 
         trials = self._params[EW_KEY_CONFIG_TRIALS]
         scores = np.zeros((trials, 1), dtype=np.float64)
+
+        dimrs = self._dimrs()
+        self._eparams[EW_KEY_EVAL_DIMRS] = dimrs
 
         pipeline = self._pipeline()
         grid = self._grid()
@@ -216,13 +246,12 @@ class EvaluationWorkflow(object):
         return scores
 
     @property
-    def dimr(self):
+    def dimrs(self):
         return self._params[EW_KEY_CONFIG_MODEL]
 
-    @dimr.setter
-    def dimr(self, params):
-        dimr, args, kwargs = self._parse(params)
-        self._params[EW_KEY_CONFIG_DIMR] = (dimr, args, kwargs)
+    @dimrs.setter
+    def dimrs(self, params):
+        self._params[EW_KEY_CONFIG_DIMRS] = params
 
     @property
     def model(self):

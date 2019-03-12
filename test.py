@@ -1,5 +1,5 @@
 from sklearn.datasets import load_iris
-from sklearn.decomposition import PCA, NMF
+from sklearn.decomposition import PCA, IncrementalPCA, KernelPCA
 from sklearn.model_selection import (
     KFold,
     RepeatedKFold,
@@ -20,6 +20,7 @@ if __name__ == '__main__':
     flow = EvaluationWorkflow()
 
     flow.model = (SVC, dict(kernel='rbf'))
+    flow.trials = 3
 
     flow.hyper = {
         'model': {
@@ -29,14 +30,13 @@ if __name__ == '__main__':
     }
 
     scores = flow.evaluate(X, y, verbose=True)
-    print(scores)
-
-    flow.hyper['dimr'] = {
-        'n_components': [1, 2, 3]
-    }
+    print(scores.mean(), scores.std())
 
     pca = (PCA, dict(iterated_power=7))
-    nmf = (NMF, dict())
+    ipca = (IncrementalPCA, dict())
+    kpca = (KernelPCA, dict(kernel='rbf'))
+
+    flow.dimrs = [pca, ipca, kpca]
 
     kfold = (KFold, dict(n_splits=4, shuffle=True))
     rkfold = (RepeatedKFold, dict(n_splits=2, n_repeats=2))
@@ -44,18 +44,14 @@ if __name__ == '__main__':
     shuffle = (ShuffleSplit, dict(n_splits=5, test_size=0.25))
     sshuffle = (StratifiedShuffleSplit, dict(n_splits=5, test_size=0.25))
 
-    dimrs = (pca, nmf)
     splitters = (kfold, rkfold, skfold, shuffle, sshuffle)
 
-    for dimr in dimrs:
-        flow.dimr = dimr
+    for splitter in splitters:
+        print(splitter)
 
-        for splitter in splitters:
-            print(dimr, splitter)
+        flow.outer = splitter
+        flow.inner = splitter
 
-            flow.outer = splitter
-            flow.inner = splitter
+        scores = flow.evaluate(X, y)
 
-            scores = flow.evaluate(X, y)
-
-            print(scores.mean(), scores.std())
+        print(scores.mean(), scores.std())
