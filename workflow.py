@@ -4,7 +4,7 @@ from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import RobustScaler, MinMaxScaler  # , PolynomialFeatures
 from sklearn.feature_selection import SelectKBest
-from sklearn.model_selection import RandomizedSearchCV, cross_val_score
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_val_score
 
 from logger import logger
 
@@ -19,6 +19,7 @@ EW_KEY_CONFIG_MODEL = 'model'
 EW_KEY_CONFIG_HYPER = 'hyper'
 EW_KEY_CONFIG_OUTER = 'outer'
 EW_KEY_CONFIG_INNER = 'inner'
+EW_KEY_CONFIG_RGS = 'rgs'
 EW_KEY_CONFIG_TRIALS = 'trials'
 
 EW_KEY_EVAL_DIMRS = 'dimrs'
@@ -154,12 +155,22 @@ class EvaluationWorkflow(object):
 
         hyper = self._params[EW_KEY_CONFIG_HYPER] or {}
 
+        self._params[EW_KEY_CONFIG_RGS] = hyper.get('__randomized__', False)
+
         for key in (EW_KEY_CONFIG_MODEL,):
-            for param, values in hyper.get(key, {}).items():
+            params_ = hyper.get(key, {})
+
+            if key == EW_KEY_CONFIG_MODEL:
+                self._params[EW_KEY_CONFIG_RGS] = params_.get('__randomized__', False)
+
+            params_ = filter(lambda x: x[0][:2] != '__', params_.items())
+
+            for param, values in params_:
                 name = f'{key}__{param}'
+
                 params[name] = values
 
-        grid = [params]
+        grid = params
 
         return grid
 
@@ -179,19 +190,12 @@ class EvaluationWorkflow(object):
         inner = self._splitter(EW_KEY_CONFIG_INNER)
         iid = self._eparams[EW_KEY_EVAL_IID]
 
-        """
-        clf = GridSearchCV(pipeline, param_grid=grid, cv=inner, iid=iid)
-        clf.fit(X, y)
-        """
-
-        from scipy.stats import expon
-
-        grid = {
-            'model__C': expon(scale=100),
-            'model__gamma': expon(scale=.1)
-        }
-        clf = RandomizedSearchCV(pipeline, param_distributions=grid, cv=inner, iid=iid)
-        clf.fit(X, y)
+        if self._params[EW_KEY_CONFIG_RGS] is True:
+            clf = RandomizedSearchCV(pipeline, param_distributions=grid, cv=inner, iid=iid)
+            clf.fit(X, y)
+        else:
+            clf = GridSearchCV(pipeline, param_grid=[grid], cv=inner, iid=iid)
+            clf.fit(X, y)
 
         if self._eparams[EW_KEY_EVAL_NESTED] is True:
             outer = self._splitter(EW_KEY_CONFIG_OUTER)
@@ -209,6 +213,7 @@ class EvaluationWorkflow(object):
             EW_KEY_CONFIG_HYPER: None,
             EW_KEY_CONFIG_INNER: None,
             EW_KEY_CONFIG_OUTER: None,
+            EW_KEY_CONFIG_RGS: None,
             EW_KEY_CONFIG_TRIALS: EW_DEFAULT_TRIALS
         }
 

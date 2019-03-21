@@ -1,3 +1,5 @@
+from scipy.stats import expon
+
 from sklearn.datasets import load_iris
 from sklearn.decomposition import PCA, IncrementalPCA, KernelPCA
 from sklearn.model_selection import (
@@ -24,8 +26,9 @@ if __name__ == '__main__':
 
     flow.hyper = {
         'model': {
-            'C': [1, 10, 100],
-            'gamma': [.01, .1]
+            '__randomized__': True,
+            'C': expon(scale=100), # [1, 10, 100],
+            'gamma':expon(scale=.1) # [.01, .1]
         }
     }
 
