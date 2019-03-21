@@ -57,5 +57,5 @@ if __name__ == '__main__':
 
         result = flow.evaluate(X, y)
 
-        print result
-        print '\n\n=============\n\n'
+        print(result)
+        print('\n\n=============\n\n')

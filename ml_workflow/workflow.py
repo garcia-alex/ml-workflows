@@ -213,7 +213,7 @@ class EvaluationWorkflow(object):
                 'params': clf.best_params_,
                 'index': clf.best_index_
             },
-            'scorer': clf.scorer_
+            'scorer': clf.scorer_,
             'scores': scores
         }
 
