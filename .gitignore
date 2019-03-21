@@ -106,5 +106,4 @@ venv.bak/
 # VS Code
 .vscode
 
-# project-specific
-datasets/*/
+# project-specificå

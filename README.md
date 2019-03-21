@@ -1,3 +1,3 @@
-Hands-On Machine Learning with Scikit-Learn and TensorFlow
+Machine Learning Workflows
 ===================================
-Book by Aurélien Géron
+Tsvetan Kintisheff
