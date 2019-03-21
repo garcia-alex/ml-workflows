@@ -247,7 +247,7 @@ class EvaluationWorkflow(object):
         self._eparams[EW_KEY_EVAL_MODEL] = model(*args, **kwargs)
 
         trials = self._params[EW_KEY_CONFIG_TRIALS]
-        scores = np.zeros((trials, 1), dtype=np.float64)
+        results = []
 
         dimrs = self._dimrs()
         self._eparams[EW_KEY_EVAL_DIMRS] = dimrs
@@ -256,11 +256,11 @@ class EvaluationWorkflow(object):
         grid = self._grid()
 
         for i in range(trials):
-            scores[i, :] = self._trial(pipeline, grid)
+            results.append( self._trial(pipeline, grid) )
 
         self._reset()
 
-        return scores
+        return results
 
     @property
     def dimrs(self):

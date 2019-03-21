@@ -1,3 +1,6 @@
+import json
+
+import numpy as np
 from scipy.stats import expon
 
 from sklearn.datasets import load_iris
@@ -12,6 +15,18 @@ from sklearn.model_selection import (
 from sklearn.svm import SVC
 
 from ml_workflow.workflow import EvaluationWorkflow
+from ml_workflow.pipelines import Pipeline
+
+
+class CustomEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, np.int64):
+            return int(obj)
+        if isinstance(obj, Pipeline):
+            return str(obj)
+        return json.JSONEncoder.default(self, obj)
 
 
 if __name__ == '__main__':
@@ -32,8 +47,10 @@ if __name__ == '__main__':
         }
     }
 
-    scores = flow.evaluate(X, y, verbose=True)
-    print(scores.mean(), scores.std())
+    results = flow.evaluate(X, y, verbose=True)
+    print(results)
+
+    print('\n\n=============\n\n')
 
     pca = (PCA, dict(iterated_power=7))
     ipca = (IncrementalPCA, dict())
@@ -55,7 +72,7 @@ if __name__ == '__main__':
         flow.outer = splitter
         flow.inner = splitter
 
-        result = flow.evaluate(X, y)
+        results = flow.evaluate(X, y)
 
-        print(result)
+        print(results)
         print('\n\n=============\n\n')
