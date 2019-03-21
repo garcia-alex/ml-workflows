@@ -214,7 +214,8 @@ class EvaluationWorkflow(object):
                 'index': clf.best_index_
             },
             'scorer': clf.scorer_,
-            'scores': scores
+            'scores': scores,
+            'score': score
         }
 
     def __init__(self):
