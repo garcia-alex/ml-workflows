@@ -28,7 +28,7 @@ else:
     install_requires.append('pyjwt==1.4.0')
 
 setup(
-    name='kintisheff/ml-workflow',
+    name='ml-workflow',
     cmdclass={'build_py': build_py},
     version="0.5.5",
     description='Machine learning model evalutation workflow',
@@ -37,7 +37,7 @@ setup(
     author='Tsvetan Kintisheff',
     author_email='kintisheff@gmail.com',
     url='https://github.com/kintisheff/ml-workflow',
-    packages=['kintisheff/ml-workflow', ],
+    packages=['ml-workflow', ],
     install_requires=install_requires,
     classifiers=[
         "Intended Audience :: Developers",
