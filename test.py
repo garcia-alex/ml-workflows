@@ -11,7 +11,7 @@ from sklearn.model_selection import (
 )
 from sklearn.svm import SVC
 
-from workflow import EvaluationWorkflow
+from ml_workflow.workflow import EvaluationWorkflow
 
 
 if __name__ == '__main__':
