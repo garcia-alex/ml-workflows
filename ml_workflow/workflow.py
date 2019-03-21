@@ -202,9 +202,20 @@ class EvaluationWorkflow(object):
             scores = cross_val_score(clf, X=X, y=y, cv=outer)
             score = scores.mean()
         else:
+            scores = []
             score = clf.best_score_
 
-        return score
+        return {
+            'results': clf.cv_results_,
+            'winner': {
+                'estimator': clf.best_estimator_,
+                'score': clf.best_score_,
+                'params': clf.best_params_,
+                'index': clf.best_index_
+            },
+            'scorer': clf.scorer_
+            'scores': scores
+        }
 
     def __init__(self):
         self._params = {

@@ -55,6 +55,7 @@ if __name__ == '__main__':
         flow.outer = splitter
         flow.inner = splitter
 
-        scores = flow.evaluate(X, y)
+        result = flow.evaluate(X, y)
 
-        print(scores.mean(), scores.std())
+        print result
+        print '\n\n=============\n\n'
