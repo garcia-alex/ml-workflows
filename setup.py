@@ -13,9 +13,9 @@ path, script = os.path.split(sys.argv[0])
 os.chdir(os.path.abspath(path))
 
 install_requires = [
-    'numpy==1.16.1',
-    'scikit-learn==0.20.2',
-    'scipy==1.2.0'
+    'numpy',
+    'scikit-learn',
+    'scipy'
 ]
 
 if sys.version_info < (3, 6):
