@@ -24,7 +24,7 @@ PIPELINE_NUMERIC = 'numeric'
 PIPELINE_CATEGORICAL = 'categorical'
 
 STRATEGY_MEDIAN = 'median'
-STARTEGY_CONSTANT = 'constant'
+STRATEGY_CONSTANT = 'constant'
 
 
 class Permutator(BaseEstimator, TransformerMixin):
