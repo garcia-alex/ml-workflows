@@ -6,7 +6,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import cross_val_score, cross_val_predict
 
-from const import SCORING_ACCURACY, SCORING_NEG_MEAN_SQ_ERR
+from ml_workflow.const import SCORING_ACCURACY, SCORING_NEG_MEAN_SQ_ERR
 
 
 KEY_CURVE_PR = 'pr'
