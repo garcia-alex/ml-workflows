@@ -123,7 +123,7 @@ class CategoryPipeline(Pipeline):
             (NAME_IMPUTER, SimpleImputer(strategy=STRATEGY_CONSTANT, fill_value=' '))
         ]
 
-		if oh is True:
+        if oh is True:
             pipeline.append((NAME_ENCODER, OneHotEncoder(sparse=False)))
         else:
             pipeline.append((NAME_ENCODER, LabelEncoder()))
