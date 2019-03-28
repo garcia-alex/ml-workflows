@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.preprocessing import StandardScaler, PolynomialFeatures, OneHotEncoder
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures, OneHotEncoder, LabelEncoder
 
 
 DTYPE_NUMBER = 'number'
@@ -111,16 +111,17 @@ class NumericPipeline(Pipeline):
 
 
 class CategoryPipeline(Pipeline):
-    def __init__(self, X, sparse=False):
+    def __init__(self, X, oh=True):
         if type(X) != pd.core.frame.DataFrame:
             X = pd.DataFrame(X)
 
         self.attributes = X.select_dtypes(exclude=[DTYPE_NUMBER]).columns
+        encoder = OneHotEncoder() if oh else LabelEncoder()
 
         pipeline = [
             (NAME_SELECTOR, AttributeSelector(self.attributes)),
             (NAME_IMPUTER, SimpleImputer(strategy=STRATEGY_CONSTANT, fill_value=' ')),
-            (NAME_ENCODER, OneHotEncoder(sparse=sparse))
+            (NAME_ENCODER, encoder)
         ]
 
         super(CategoryPipeline, self).__init__(pipeline)
