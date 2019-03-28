@@ -120,9 +120,13 @@ class CategoryPipeline(Pipeline):
 
         pipeline = [
             (NAME_SELECTOR, AttributeSelector(self.attributes)),
-            (NAME_IMPUTER, SimpleImputer(strategy=STRATEGY_CONSTANT, fill_value=' ')),
-            (NAME_ENCODER, encoder)
+            (NAME_IMPUTER, SimpleImputer(strategy=STRATEGY_CONSTANT, fill_value=' '))
         ]
+
+		if oh is True:
+            pipeline.append((NAME_ENCODER, OneHotEncoder(sparse=False)))
+        else:
+            pipeline.append((NAME_ENCODER, LabelEncoder()))
 
         super(CategoryPipeline, self).__init__(pipeline)
 
