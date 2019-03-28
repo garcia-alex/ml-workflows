@@ -99,7 +99,7 @@ class NumericPipeline(Pipeline):
 
         if discrete is True:
             pipeline.append(
-                (NAME_DISCRETIZER, KBinsDiscretizer(n_bins=bins))
+                (NAME_DISCRETIZER, KBinsDiscretizer(n_bins=5))
             )
 
         if bias is True or degree > 1:
