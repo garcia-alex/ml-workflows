@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.preprocessing import StandardScaler, PolynomialFeatures, OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures, OneHotEncoder, KBinsDiscretizer
 
 
 DTYPE_NUMBER = 'number'
@@ -16,6 +16,7 @@ NAME_IMPUTER = 'imputer'
 NAME_ENGINEER = 'engineer'
 NAME_SCALER_STD = 'scaler_std'
 NAME_SCALER_NORM = 'scaler_norm'
+NAME_DISCRETIZER = 'discretizer'
 NAME_FEATURES_POLY = 'features_poly'
 NAME_ENCODER = 'encoder'
 NAME_MODEL = 'model'
@@ -25,14 +26,6 @@ PIPELINE_CATEGORICAL = 'categorical'
 
 STRATEGY_MEDIAN = 'median'
 STRATEGY_CONSTANT = 'constant'
-
-
-class ModifiedLabelEncoder(LabelEncoder):
-    def fit_transform(self, y, *args, **kwargs):
-        return super().fit_transform(y).reshape(-1, 1)
-
-    def transform(self, y, *args, **kwargs):
-        return super().transform(y).reshape(-1, 1)
 
 
 class Permutator(BaseEstimator, TransformerMixin):
@@ -87,7 +80,7 @@ class DefaultPipeline(Pipeline):
 
 
 class NumericPipeline(Pipeline):
-    def __init__(self, X, agents=[], strategy=STRATEGY_MEDIAN, scale=True, degree=1, bias=False, model_=None):
+    def __init__(self, X, agents=[], strategy=STRATEGY_MEDIAN, scale=True, discrete=False, degree=1, bias=False, model_=None):
         if type(X) != pd.core.frame.DataFrame:
             X = pd.DataFrame(X)
 
@@ -99,9 +92,14 @@ class NumericPipeline(Pipeline):
             (NAME_ENGINEER, FeatureEngineer(agents))
         ]
 
-        if scale:
+        if scale is True:
             pipeline.append(
                 (NAME_SCALER_STD, StandardScaler())
+            )
+
+        if discrete is True:
+            pipeline.append(
+                (NAME_DISCRETIZER, KBinsDiscretizer(n_bins=bins))
             )
 
         if bias is True or degree > 1:
@@ -119,7 +117,7 @@ class NumericPipeline(Pipeline):
 
 
 class CategoryPipeline(Pipeline):
-    def __init__(self, X, oh=True):
+    def __init__(self, X, sparse=False):
         if type(X) != pd.core.frame.DataFrame:
             X = pd.DataFrame(X)
 
@@ -128,13 +126,9 @@ class CategoryPipeline(Pipeline):
 
         pipeline = [
             (NAME_SELECTOR, AttributeSelector(self.attributes)),
-            (NAME_IMPUTER, SimpleImputer(strategy=STRATEGY_CONSTANT, fill_value=' '))
+            (NAME_IMPUTER, SimpleImputer(strategy=STRATEGY_CONSTANT, fill_value=' ')),
+            (NAME_ENCODER, OneHotEncoder(sparse=sparse))
         ]
-
-        if oh is True:
-            pipeline.append((NAME_ENCODER, OneHotEncoder(sparse=False)))
-        else:
-            pipeline.append((NAME_ENCODER, ModifiedLabelEncoder()))
 
         super(CategoryPipeline, self).__init__(pipeline)
 
