@@ -26,6 +26,9 @@ PIPELINE_CATEGORICAL = 'categorical'
 
 STRATEGY_MEDIAN = 'median'
 STRATEGY_CONSTANT = 'constant'
+STRATEGY_UNIFORM = 'uniform'
+
+ENCODE_ORDINAL = 'ordinal'
 
 
 class Permutator(BaseEstimator, TransformerMixin):
@@ -98,8 +101,9 @@ class NumericPipeline(Pipeline):
             )
 
         if discrete is True:
+            discretizer = KBinsDiscretizer(n_bins=5, encode=ENCODE_ORDINAL, strategy=STRATEGY_UNIFORM)
             pipeline.append(
-                (NAME_DISCRETIZER, KBinsDiscretizer(n_bins=5))
+                (NAME_DISCRETIZER, discretizer)
             )
 
         if bias is True or degree > 1:
