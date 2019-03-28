@@ -122,7 +122,6 @@ class CategoryPipeline(Pipeline):
             X = pd.DataFrame(X)
 
         self.attributes = X.select_dtypes(exclude=[DTYPE_NUMBER]).columns
-        encoder = OneHotEncoder() if oh else LabelEncoder()
 
         pipeline = [
             (NAME_SELECTOR, AttributeSelector(self.attributes)),
