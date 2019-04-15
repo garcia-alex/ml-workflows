@@ -6,7 +6,7 @@ from sklearn.preprocessing import RobustScaler, MinMaxScaler  # , PolynomialFeat
 from sklearn.feature_selection import SelectKBest
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_val_score
 
-from logger import logger
+# from logger import logger
 
 
 __all__ = ['EW_DEFAULT_TRIALS', 'EvaluationWorkflow']
@@ -89,7 +89,8 @@ class EvaluationWorkflow(object):
         if verbose:
             for key, msg in EW_PARAMS_WARNINGS.items():
                 if self._params[key] is None:
-                    logger.warn(msg)
+                    # logger.warn(msg)
+                    pass
 
     def _reset(self):
         self._eparams = {
